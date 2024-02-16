@@ -16,6 +16,11 @@ namespace PacketSniffer
                 .WriteTo.EventLog("PacketSniffer", manageEventSource: true)
                 .CreateLogger();
 
+            builder.Services.AddHttpsRedirection(options =>
+            {
+                options.HttpsPort = 59037;
+            });
+
             builder.AddRedis();
 
             builder.Services.AddSingleton<PcapAgent>();
@@ -26,6 +31,8 @@ namespace PacketSniffer
             builder.Services.AddControllers();
 
             var app = builder.Build();
+
+            app.UseHttpsRedirection();
 
             app.UseRouting();
 

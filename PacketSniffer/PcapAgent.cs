@@ -9,6 +9,9 @@ using PacketSniffer.Resources;
 using System.Collections.Concurrent;
 using Serilog;
 using PcapDevice = WebSpectre.Shared.Capture.PcapDevice;
+using WebSpectre.Shared.Capture;
+using System.Management;
+using WebSpectre.Shared.Agents;
 
 namespace PacketSniffer
 {
@@ -61,6 +64,33 @@ namespace PacketSniffer
         /// </summary>
         public bool IsSnifferCapturing => _isSnifferCapturing;
 
+        /// <summary>
+        /// Метод, необходимый для получения IPv4-адресов устройств данной машины.
+        /// </summary>
+        /// <returns>IPv4-адреса.</returns>
+        public async Task<HostInfo> GetHostInfo()
+        {
+            var os = Environment.OSVersion.VersionString;
+            var motherboard = GetMotherboardInfo();
+            var memory = GetMemoryInfo();
+            var cpu = GetCPUInfo();
+            var gpu = GetGPUInfo();
+            var addresses = Dns.GetHostAddresses(Dns.GetHostName()).Select(ip => ip.ToString()).ToArray();
+
+            return new HostInfo
+            {
+                OSVersion = os,
+                Hardware = new Hardware 
+                { 
+                    MotherboardInfo = motherboard ,
+                    MemoryInfo = memory,
+                    CPUInfo = cpu,
+                    GPUInfo = gpu
+                },
+                IPAddresses = addresses
+            };           
+        }
+           
         /// <summary>
         /// Получить доступные устройства.
         /// </summary>
@@ -268,11 +298,59 @@ namespace PacketSniffer
         private int GetInterfaceIndex(LibPcapLiveDeviceList devices, string interfaceToSniff) =>
             devices.IndexOf(devices.FirstOrDefault(d => d.Description == interfaceToSniff));
 
-        /// <summary>
-        /// Метод, необходимый для получения IPv4-адресов устройств данной машины.
-        /// </summary>
-        /// <returns>IPv4-адреса.</returns>
-        private IEnumerable<IPAddress> GetIPs() =>
-            Dns.GetHostAddresses(Dns.GetHostName()).Where(addr => addr.AddressFamily == AddressFamily.InterNetwork);
+        private MotherboardInfo GetMotherboardInfo()
+        {
+            var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_BaseBoard");
+            var mboardInfo = new MotherboardInfo();
+
+            foreach (var obj in searcher.Get())
+            {
+                mboardInfo.Manufacturer += obj["Manufacturer"];
+                mboardInfo.Model += obj["Product"];
+            }
+
+            return mboardInfo;
+        }
+
+        private MemoryInfo GetMemoryInfo()
+        {
+            var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
+            long memorySize = 0;
+            foreach (var obj in searcher.Get())
+            {
+                memorySize += Convert.ToInt64(obj["Capacity"]);
+            }
+
+            return new MemoryInfo
+            {
+                TotalMemory = (int)(memorySize / (1024 * 1024))
+            };
+        }
+
+        public CPUInfo GetCPUInfo()
+        {
+            var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
+            var cpu = new CPUInfo();
+            foreach (var obj in searcher.Get())
+            {
+                cpu.Processor += obj["Name"];
+                cpu.NumberOfCores += obj["NumberOfCores"];
+                cpu.MaxClockSpeed += obj["MaxClockSpeed"];
+            }
+
+            return cpu;
+        }
+
+        public GPUInfo GetGPUInfo()
+        {
+            var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
+            var gpu = new GPUInfo();
+            foreach (var obj in searcher.Get())
+            {
+                gpu.GraphicsCard = $"{obj["Name"]}";
+            }
+
+            return gpu;
+        }
     }
 }

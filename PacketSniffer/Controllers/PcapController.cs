@@ -14,6 +14,9 @@ namespace PacketSniffer.Controllers
             _capAgent = pcap;
         }
 
+        [HttpGet("info")]
+        public IActionResult Info() => Ok(_capAgent.GetHostInfo());
+
         [HttpGet("status")]
         public IActionResult Status() => Ok(_capAgent.IsSnifferCapturing);
 
