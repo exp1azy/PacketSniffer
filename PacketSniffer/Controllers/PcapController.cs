@@ -3,23 +3,42 @@ using WebSpectre.Shared.Capture;
 
 namespace PacketSniffer.Controllers
 {
+    /// <summary>
+    /// Контроллер агента.
+    /// </summary>
     [ApiController]
     [Route("[controller]")]
     public class PcapController : ControllerBase
     {
         private readonly PcapAgent _capAgent;
 
+        /// <summary>
+        /// Конструктор.
+        /// </summary>
+        /// <param name="pcap">Сервис агента.</param>
         public PcapController(PcapAgent pcap)
         {
             _capAgent = pcap;
         }
 
+        /// <summary>
+        /// Информация о хосте.
+        /// </summary>
+        /// <returns>Возвращает <see cref="HostInfo"/></returns>
         [HttpGet("info")]
         public IActionResult Info() => Ok(_capAgent.GetHostInfo());
 
+        /// <summary>
+        /// Запущен захват сетевого трафика или нет.
+        /// </summary>
+        /// <returns>true, если захват запущен, иначе false</returns>
         [HttpGet("status")]
         public IActionResult Status() => Ok(_capAgent.IsSnifferCapturing);
 
+        /// <summary>
+        /// Доступные сетевые адаптеры.
+        /// </summary>
+        /// <returns>Возвращает список <see cref="PcapDevice"/></returns>
         [HttpGet("devices")]
         public ActionResult<List<PcapDevice>> AvailableDevices()
         {
@@ -34,6 +53,11 @@ namespace PacketSniffer.Controllers
             }
         }
 
+        /// <summary>
+        /// Запуск захвата сетевого трафика.
+        /// </summary>
+        /// <param name="a">Сетевой адаптер.</param>
+        /// <returns></returns>
         [HttpGet("start")]
         public IActionResult Start([FromQuery] string a) 
         {
@@ -49,6 +73,10 @@ namespace PacketSniffer.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Остановка захвата сетевого трафика.
+        /// </summary>
+        /// <returns></returns>
         [HttpGet("stop")]
         public IActionResult StopPhysic()
         {

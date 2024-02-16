@@ -1,7 +1,6 @@
 ﻿using SharpPcap.LibPcap;
 using SharpPcap.Statistics;
 using StackExchange.Redis;
-using System.Net.Sockets;
 using System.Net;
 using SharpPcap;
 using Newtonsoft.Json;
@@ -65,34 +64,25 @@ namespace PacketSniffer
         public bool IsSnifferCapturing => _isSnifferCapturing;
 
         /// <summary>
-        /// Метод, необходимый для получения IPv4-адресов устройств данной машины.
+        /// Метод, необходимый для получения информации о хосте.
         /// </summary>
-        /// <returns>IPv4-адреса.</returns>
-        public async Task<HostInfo> GetHostInfo()
+        /// <returns>Информация о текущем хосте в формате <see cref="HostInfo"/></returns>
+        public HostInfo GetHostInfo() => new HostInfo
         {
-            var os = Environment.OSVersion.VersionString;
-            var motherboard = GetMotherboardInfo();
-            var memory = GetMemoryInfo();
-            var cpu = GetCPUInfo();
-            var gpu = GetGPUInfo();
-            var addresses = Dns.GetHostAddresses(Dns.GetHostName()).Select(ip => ip.ToString()).ToArray();
-
-            return new HostInfo
-            {
-                OSVersion = os,
-                Hardware = new Hardware 
-                { 
-                    MotherboardInfo = motherboard ,
-                    MemoryInfo = memory,
-                    CPUInfo = cpu,
-                    GPUInfo = gpu
-                },
-                IPAddresses = addresses
-            };           
-        }
+            OSVersion = Environment.OSVersion.VersionString,
+            Hardware = new Hardware 
+            { 
+                MotherboardInfo = GetMotherboardInfo(),
+                MemoryInfo = GetMemoryInfo(),
+                CPUInfo = GetCPUInfo(),
+                GPUInfo = GetGPUInfo()
+            },
+            IPAddresses = Dns.GetHostAddresses(Dns.GetHostName()).Select(ip => ip.ToString()).ToArray()
+        };           
+        
            
         /// <summary>
-        /// Получить доступные устройства.
+        /// Получить доступные сетевые адаптеры.
         /// </summary>
         /// <returns>Список устройств.</returns>
         public List<PcapDevice> GetDevices()
@@ -298,6 +288,10 @@ namespace PacketSniffer
         private int GetInterfaceIndex(LibPcapLiveDeviceList devices, string interfaceToSniff) =>
             devices.IndexOf(devices.FirstOrDefault(d => d.Description == interfaceToSniff));
 
+        /// <summary>
+        /// Получить инофрмацию о материнской плате.
+        /// </summary>
+        /// <returns>Информация о материнской плате в формате <see cref="MotherboardInfo"/></returns>
         private MotherboardInfo GetMotherboardInfo()
         {
             var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_BaseBoard");
@@ -312,6 +306,10 @@ namespace PacketSniffer
             return mboardInfo;
         }
 
+        /// <summary>
+        /// Получить информацию об оперативной памяти.
+        /// </summary>
+        /// <returns>Информация об оперативной памяти в формате <see cref="MemoryInfo"/></returns>
         private MemoryInfo GetMemoryInfo()
         {
             var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
@@ -327,7 +325,11 @@ namespace PacketSniffer
             };
         }
 
-        public CPUInfo GetCPUInfo()
+        /// <summary>
+        /// Получить информацию о CPU.
+        /// </summary>
+        /// <returns>Информация о CPU в формате <see cref="CPUInfo"/></returns>
+        private CPUInfo GetCPUInfo()
         {
             var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
             var cpu = new CPUInfo();
@@ -341,7 +343,11 @@ namespace PacketSniffer
             return cpu;
         }
 
-        public GPUInfo GetGPUInfo()
+        /// <summary>
+        /// Получить информацию о GPU.
+        /// </summary>
+        /// <returns>Информация о GPU в формате <see cref="GPUInfo"/></returns>
+        private GPUInfo GetGPUInfo()
         {
             var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
             var gpu = new GPUInfo();
