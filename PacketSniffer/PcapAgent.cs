@@ -7,10 +7,8 @@ using Newtonsoft.Json;
 using PacketSniffer.Resources;
 using System.Collections.Concurrent;
 using Serilog;
-using PcapDevice = WebSpectre.Shared.Capture.PcapDevice;
-using WebSpectre.Shared.Capture;
-using System.Management;
 using WebSpectre.Shared.Agents;
+using PcapDevice = WebSpectre.Shared.Agents.PcapDevice;
 
 namespace PacketSniffer
 {
@@ -29,9 +27,8 @@ namespace PacketSniffer
         private ConcurrentQueue<StatisticsEventArgs> _statisticsQueue;
         private ConcurrentQueue<RawCapture> _rawPacketsQueue;
 
-        private string _redisStreamKey = $"host_{Environment.MachineName}";
-        private string _rawPacketValueKey = "raw_packets";
-        private string _statisticsValueKey = "statistics";
+        private const string _rawPacketValueKey = "raw_packets";
+        private const string _statisticsValueKey = "statistics";
 
         private bool _isSnifferCapturing = false;
 
@@ -59,7 +56,7 @@ namespace PacketSniffer
         }
 
         /// <summary>
-        /// true, если захват трафика запущен, иначе false.
+        /// <see cref="true"/>, если захват трафика запущен, иначе <see cref="false"/>.
         /// </summary>
         public bool IsSnifferCapturing => _isSnifferCapturing;
 
@@ -72,14 +69,15 @@ namespace PacketSniffer
             OSVersion = Environment.OSVersion.VersionString,
             Hardware = new Hardware 
             { 
-                MotherboardInfo = GetMotherboardInfo(),
-                MemoryInfo = GetMemoryInfo(),
-                CPUInfo = GetCPUInfo(),
-                GPUInfo = GetGPUInfo()
+                MotherboardInfo = CurrentMachineHelper.GetMotherboardInfo(),
+                MemoryInfo = CurrentMachineHelper.GetMemoryInfo(),
+                CPUInfo = CurrentMachineHelper.GetCPUInfo(),
+                GPUInfo = CurrentMachineHelper.GetGPUInfo()
             },
-            IPAddresses = Dns.GetHostAddresses(Dns.GetHostName()).Select(ip => ip.ToString()).ToArray()
+            IPAddresses = Dns.GetHostAddresses(Dns.GetHostName()).Select(ip => ip.ToString()).ToArray(),
+            AvailableDevices = GetDevices(),
+            IsCaptureProcessing = _isSnifferCapturing
         };           
-        
            
         /// <summary>
         /// Получить доступные сетевые адаптеры.
@@ -97,7 +95,7 @@ namespace PacketSniffer
             {
                 formattedDevices.Add(new PcapDevice
                 {
-                    Addresses = device.Interface.Addresses.Select(a => (WebSpectre.Shared.Capture.PcapAddress)a).ToList(),
+                    Addresses = device.Interface.Addresses.Select(a => (WebSpectre.Shared.Agents.PcapAddress)a).ToList(),
                     Description = device.Interface.Description,
                     FriendlyName = device.Interface.FriendlyName,
                     GatewayAddresses = device.Interface.GatewayAddresses.Select(a => a.ToString()).ToList(),
@@ -154,7 +152,6 @@ namespace PacketSniffer
                 }
                 catch (ApplicationException)
                 {
-
                     _isSnifferCapturing = false;
                     throw;
                 }
@@ -262,7 +259,7 @@ namespace PacketSniffer
             while (_rawPacketsQueue.TryDequeue(out var rawPacket))              
                 entries.Add(new NameValueEntry(_rawPacketValueKey, JsonConvert.SerializeObject(rawPacket))); 
 
-            await _redisService.StreamAddAsync(_redisStreamKey, entries.ToArray());
+            await _redisService.StreamAddAsync(entries.ToArray());
         }
 
         /// <summary>
@@ -276,7 +273,7 @@ namespace PacketSniffer
             while (_statisticsQueue.TryDequeue(out var statistics))
                 entries.Add(new NameValueEntry(_statisticsValueKey, JsonConvert.SerializeObject(statistics)));
 
-            await _redisService.StreamAddAsync(_redisStreamKey, entries.ToArray());         
+            await _redisService.StreamAddAsync(entries.ToArray());         
         }
 
         /// <summary>
@@ -287,76 +284,5 @@ namespace PacketSniffer
         /// <returns>Индекс устройства.</returns>
         private int GetInterfaceIndex(LibPcapLiveDeviceList devices, string interfaceToSniff) =>
             devices.IndexOf(devices.FirstOrDefault(d => d.Description == interfaceToSniff));
-
-        /// <summary>
-        /// Получить инофрмацию о материнской плате.
-        /// </summary>
-        /// <returns>Информация о материнской плате в формате <see cref="MotherboardInfo"/></returns>
-        private MotherboardInfo GetMotherboardInfo()
-        {
-            var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_BaseBoard");
-            var mboardInfo = new MotherboardInfo();
-
-            foreach (var obj in searcher.Get())
-            {
-                mboardInfo.Manufacturer += obj["Manufacturer"];
-                mboardInfo.Model += obj["Product"];
-            }
-
-            return mboardInfo;
-        }
-
-        /// <summary>
-        /// Получить информацию об оперативной памяти.
-        /// </summary>
-        /// <returns>Информация об оперативной памяти в формате <see cref="MemoryInfo"/></returns>
-        private MemoryInfo GetMemoryInfo()
-        {
-            var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
-            long memorySize = 0;
-            foreach (var obj in searcher.Get())
-            {
-                memorySize += Convert.ToInt64(obj["Capacity"]);
-            }
-
-            return new MemoryInfo
-            {
-                TotalMemory = (int)(memorySize / (1024 * 1024))
-            };
-        }
-
-        /// <summary>
-        /// Получить информацию о CPU.
-        /// </summary>
-        /// <returns>Информация о CPU в формате <see cref="CPUInfo"/></returns>
-        private CPUInfo GetCPUInfo()
-        {
-            var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
-            var cpu = new CPUInfo();
-            foreach (var obj in searcher.Get())
-            {
-                cpu.Processor += obj["Name"];
-                cpu.NumberOfCores += obj["NumberOfCores"];
-                cpu.MaxClockSpeed += obj["MaxClockSpeed"];
-            }
-
-            return cpu;
-        }
-
-        /// <summary>
-        /// Получить информацию о GPU.
-        /// </summary>
-        /// <returns>Информация о GPU в формате <see cref="GPUInfo"/></returns>
-        private GPUInfo GetGPUInfo()
-        {
-            var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
-            var gpu = new GPUInfo();
-            foreach (var obj in searcher.Get())
-            {
-                gpu.GraphicsCard = $"{obj["Name"]}";
-            }
-
-            return gpu;
-        }
     }
 }

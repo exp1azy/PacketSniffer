@@ -21,10 +21,10 @@ namespace PacketSniffer
                 options.HttpsPort = 59037;
             });
 
-            builder.AddRedis();
+            var connection = builder.AddRedis();
 
             builder.Services.AddSingleton<PcapAgent>();
-            builder.Services.AddTransient<RedisService>();
+            builder.Services.AddTransient(sp => new RedisService(connection, $"host_{Environment.MachineName}"));
 
             builder.Services.AddAuthentication();
 

@@ -9,15 +9,18 @@ namespace PacketSniffer
     {
         private IDatabase _db;
         private ConnectionMultiplexer? _connection;
+        private RedisKey _key;
 
         /// <summary>
         /// Конструктор.
         /// </summary>
-        /// <param name="logger">Логи.</param>
-        public RedisService(ConnectionMultiplexer connection)
+        public RedisService(ConnectionMultiplexer connection, RedisKey key)
         {
             _connection = connection;
             _db = _connection.GetDatabase();
+            _key = key;
+
+            ImAliveAsync().Wait();
         }
 
         /// <summary>
@@ -26,7 +29,15 @@ namespace PacketSniffer
         /// <param name="key">Ключ потока.</param>
         /// <param name="streamPairs">Данные.</param>
         /// <returns></returns>
-        public async Task StreamAddAsync(RedisKey key, NameValueEntry[] streamPairs) =>
-            await _db.StreamAddAsync(key, streamPairs);
+        public async Task StreamAddAsync(NameValueEntry[] streamPairs) =>
+            await _db.StreamAddAsync(_key, streamPairs);
+
+        /// <summary>
+        /// Позволяет сообщить центру управления о том, что текущий хост "жив".
+        /// </summary>
+        /// <returns></returns>
+        private async Task ImAliveAsync() =>        
+            await _db.StreamAddAsync(_key, new RedisValue($"{_key}"), new RedisValue("im_alive"));
+        
     }
 }

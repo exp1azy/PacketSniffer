@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebSpectre.Shared.Capture;
+using WebSpectre.Shared.Agents;
 
 namespace PacketSniffer.Controllers
 {
@@ -34,24 +34,6 @@ namespace PacketSniffer.Controllers
         /// <returns>true, если захват запущен, иначе false</returns>
         [HttpGet("status")]
         public IActionResult Status() => Ok(_capAgent.IsSnifferCapturing);
-
-        /// <summary>
-        /// Доступные сетевые адаптеры.
-        /// </summary>
-        /// <returns>Возвращает список <see cref="PcapDevice"/></returns>
-        [HttpGet("devices")]
-        public ActionResult<List<PcapDevice>> AvailableDevices()
-        {
-            try
-            {
-                var devices = _capAgent.GetDevices();
-                return Ok(devices);
-            } 
-            catch (ApplicationException)
-            {
-                return NoContent();
-            }
-        }
 
         /// <summary>
         /// Запуск захвата сетевого трафика.
