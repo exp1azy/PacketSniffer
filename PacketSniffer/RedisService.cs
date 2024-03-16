@@ -19,8 +19,6 @@ namespace PacketSniffer
             _connection = connection;
             _db = _connection.GetDatabase();
             _key = key;
-
-            ImAliveAsync().Wait();
         }
 
         /// <summary>
@@ -31,13 +29,5 @@ namespace PacketSniffer
         /// <returns></returns>
         public async Task StreamAddAsync(NameValueEntry[] streamPairs) =>
             await _db.StreamAddAsync(_key, streamPairs);
-
-        /// <summary>
-        /// Позволяет сообщить центру управления о том, что текущий хост "жив".
-        /// </summary>
-        /// <returns></returns>
-        private async Task ImAliveAsync() =>        
-            await _db.StreamAddAsync(_key, new RedisValue($"{_key}"), new RedisValue("im_alive"));
-        
     }
 }

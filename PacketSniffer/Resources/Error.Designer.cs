@@ -79,6 +79,15 @@ namespace PacketSniffer.Resources {
         }
         
         /// <summary>
+        ///   Ищет локализованную строку, похожую на Не удалось прочитать порт из файла appsettings.json.
+        /// </summary>
+        internal static string FailedToReadPort {
+            get {
+                return ResourceManager.GetString("FailedToReadPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Ищет локализованную строку, похожую на Не удалось прочитать протоколы, необходимые для перехвата пакетов, из файла appsettings.
         /// </summary>
         internal static string FailedToReadProtocols {

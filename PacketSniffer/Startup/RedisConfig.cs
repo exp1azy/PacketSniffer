@@ -5,19 +5,15 @@ namespace PacketSniffer.Startup
 {
     public static class RedisConfig
     {
-        public static ConnectionMultiplexer? AddRedis(this WebApplicationBuilder builder)
+        public static ConnectionMultiplexer AddRedis(this WebApplicationBuilder builder)
         {
-            ConnectionMultiplexer? connection = null;
+            var connectionString = builder.Configuration["RedisConnection"];
+            if (string.IsNullOrEmpty(connectionString))
+                throw new ArgumentNullException(Error.FailedToReadRedisConnectionString);
 
-            builder.Services.AddSingleton(sp =>
-            {
-                var connectionString = builder.Configuration["RedisConnection"];
-                if (string.IsNullOrEmpty(connectionString))               
-                    throw new ArgumentNullException(Error.FailedToReadRedisConnectionString);
+            var connection = ConnectionMultiplexer.Connect(connectionString);
 
-                connection = ConnectionMultiplexer.Connect(connectionString);
-                return connection;
-            });
+            builder.Services.AddSingleton(sp => connection);
 
             return connection;
         }

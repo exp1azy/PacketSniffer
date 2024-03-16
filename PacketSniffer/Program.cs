@@ -1,9 +1,10 @@
+using PacketSniffer.Resources;
 using PacketSniffer.Startup;
 using Serilog;
 
 namespace PacketSniffer
 {
-    public class Program
+    public static class Program
     {
         public static void Main(string[] args)
         {
@@ -16,15 +17,26 @@ namespace PacketSniffer
                 .WriteTo.EventLog("PacketSniffer", manageEventSource: true)
                 .CreateLogger();
 
-            builder.Services.AddHttpsRedirection(options =>
+            var host = $"host_{Environment.MachineName}";
+            int port;
+
+            try
             {
-                options.HttpsPort = 59037;
-            });
+                port = builder.Configuration.GetPort();
+            }
+            catch
+            {
+                port = 59037;
+            }
 
             var connection = builder.AddRedis();
 
+            builder.CreateStreamIfNeeded(connection, host);
+
+            builder.WebHost.UseUrls($"https://{host}:{port}");
+
             builder.Services.AddSingleton<PcapAgent>();
-            builder.Services.AddTransient(sp => new RedisService(connection, $"host_{Environment.MachineName}"));
+            builder.Services.AddTransient(sp => new RedisService(connection, host));
 
             builder.Services.AddAuthentication();
 
@@ -32,13 +44,20 @@ namespace PacketSniffer
 
             var app = builder.Build();
 
-            app.UseHttpsRedirection();
-
             app.UseRouting();
 
             app.MapControllers();
 
             app.Run();
+        }
+
+        public static int GetPort(this IConfiguration config)
+        {
+            _ = int.TryParse(config?["Port"], out var port);
+            if (port <= 0)
+                throw new ApplicationException(Error.FailedToReadPort);
+
+            return port;
         }
     }
 }

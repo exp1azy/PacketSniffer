@@ -64,8 +64,9 @@ namespace PacketSniffer
         /// Метод, необходимый для получения информации о хосте.
         /// </summary>
         /// <returns>Информация о текущем хосте в формате <see cref="HostInfo"/></returns>
-        public HostInfo GetHostInfo() => new HostInfo
+        public HostInfo GetHostInfo() => new()
         {
+            MachineName = Environment.MachineName,
             OSVersion = Environment.OSVersion.VersionString,
             Hardware = new Hardware 
             { 

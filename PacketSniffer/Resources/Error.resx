@@ -123,6 +123,9 @@
   <data name="FailedToReadNetworkPrefixData" xml:space="preserve">
     <value>Не удалось прочитать данные о сети из файла appsettings.json</value>
   </data>
+  <data name="FailedToReadPort" xml:space="preserve">
+    <value>Не удалось прочитать порт из файла appsettings.json</value>
+  </data>
   <data name="FailedToReadProtocols" xml:space="preserve">
     <value>Не удалось прочитать протоколы, необходимые для перехвата пакетов, из файла appsettings</value>
   </data>
