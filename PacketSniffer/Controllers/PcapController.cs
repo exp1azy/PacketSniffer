@@ -60,7 +60,7 @@ namespace PacketSniffer.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("stop")]
-        public IActionResult StopPhysic()
+        public IActionResult Stop()
         {
             _capAgent.Stop();
 
