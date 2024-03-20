@@ -17,7 +17,14 @@ namespace PacketSniffer
                 .WriteTo.EventLog("PacketSniffer", manageEventSource: true)
                 .CreateLogger();
 
-            var host = $"host_{Environment.MachineName}";
+            builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
+            {
+                p.AllowAnyHeader();
+                p.AllowAnyMethod();
+                p.AllowAnyOrigin();
+            }));
+
+            var host = $"host_{Environment.MachineName.ToLower()}";
             int port;
 
             try
@@ -45,6 +52,8 @@ namespace PacketSniffer
             var app = builder.Build();
 
             app.UseRouting();
+
+            app.UseCors();
 
             app.MapControllers();
 

@@ -260,7 +260,7 @@ namespace PacketSniffer
             while (_rawPacketsQueue.TryDequeue(out var rawPacket))              
                 entries.Add(new NameValueEntry(_rawPacketValueKey, JsonConvert.SerializeObject(rawPacket))); 
 
-            await _redisService.StreamAddAsync(entries.ToArray());
+            await _redisService.StreamAddAsync([.. entries]);
         }
 
         /// <summary>
@@ -274,7 +274,7 @@ namespace PacketSniffer
             while (_statisticsQueue.TryDequeue(out var statistics))
                 entries.Add(new NameValueEntry(_statisticsValueKey, JsonConvert.SerializeObject(statistics)));
 
-            await _redisService.StreamAddAsync(entries.ToArray());         
+            await _redisService.StreamAddAsync([.. entries]);         
         }
 
         /// <summary>
